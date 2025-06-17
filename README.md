@@ -19,7 +19,7 @@
 
 ## 使い方
 
-1. [デモページ](https://yourusername.github.io/markdown-viewer/)にアクセス
+1. [デモページ](https://monoharada.github.io/markdown-ohp/)にアクセス
 2. マークダウンファイルをドラッグ&ドロップ、またはクリックして選択
 3. ホットリロードを有効にする場合は、プロンプトに従って設定
 
@@ -39,8 +39,8 @@
 ## ローカルでの実行
 
 ```bash
-git clone https://github.com/yourusername/markdown-viewer.git
-cd markdown-viewer
+git clone https://github.com/monoharada/markdown-ohp.git
+cd markdown-ohp
 # HTTPサーバーを起動（例: Python）
 python -m http.server 8000
 # ブラウザで http://localhost:8000 にアクセス
@@ -52,4 +52,4 @@ MIT License
 
 ## 貢献
 
-プルリクエストを歓迎します！バグ報告や機能要望は[Issues](https://github.com/yourusername/markdown-viewer/issues)へ。
+プルリクエストを歓迎します！バグ報告や機能要望は[Issues](https://github.com/monoharada/markdown-ohp/issues)へ。
