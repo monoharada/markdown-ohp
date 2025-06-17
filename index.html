@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown Viewer - 最強のマークダウンビューアー | ホットリロード対応</title>
+    <meta name="description" content="ドラッグ&ドロップで簡単にマークダウンファイルを閲覧。自動目次生成、折りたたみ機能、Mermaidダイアグラム対応、ホットリロード機能付きの高機能マークダウンビューアー。">
+    <meta name="keywords" content="マークダウン,ビューアー,Markdown,Viewer,ホットリロード,Mermaid,目次,折りたたみ,PDF出力">
+    <meta name="author" content="Markdown Viewer Team">
+    
+    <!-- OGP / Social Media -->
+    <meta property="og:title" content="Markdown Viewer - 最強のマークダウンビューアー">
+    <meta property="og:description" content="ドラッグ&ドロップで簡単にマークダウンファイルを閲覧。自動目次生成、折りたたみ機能、Mermaidダイアグラム対応の高機能ビューアー。">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://yourusername.github.io/markdown-viewer/">
+    <meta property="og:image" content="https://yourusername.github.io/markdown-viewer/ogp-image.png">
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Markdown Viewer - 最強のマークダウンビューアー">
+    <meta name="twitter:description" content="ドラッグ&ドロップで簡単にマークダウンファイルを閲覧。高機能で使いやすい。">
+    <meta name="twitter:image" content="https://yourusername.github.io/markdown-viewer/ogp-image.png">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='0.9em' font-size='90'%3E📝%3C/text%3E%3C/svg%3E">
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://yourusername.github.io/markdown-viewer/">
+    
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="print.css" media="print">
+    <!-- marked.js -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Mermaid -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <!-- highlight.js for code syntax highlighting -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/highlight.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- ドラッグ&ドロップエリア -->
+        <div id="drop-zone" class="drop-zone">
+            <div class="drop-zone-content">
+                <svg class="upload-icon" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                </svg>
+                <h1 class="drop-zone-text">マークダウンファイルをドラッグ&ドロップ</h1>
+                <p class="drop-zone-subtext">または クリックしてファイルを選択（ホットリロード対応）</p>
+                <input type="file" id="file-input" accept=".md,.markdown" style="display: none;">
+            </div>
+        </div>
+
+        <!-- メインコンテンツエリア -->
+        <div id="viewer" class="viewer" style="display: none;">
+            <!-- ヘッダー -->
+            <header class="viewer-header">
+                <h1 id="file-name" class="file-name"></h1>
+                <div class="header-actions">
+                    <button id="toggle-toc" class="btn btn-icon" title="目次の表示/非表示">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="8" y1="6" x2="21" y2="6"/>
+                            <line x1="8" y1="12" x2="21" y2="12"/>
+                            <line x1="8" y1="18" x2="21" y2="18"/>
+                            <line x1="3" y1="6" x2="3.01" y2="6"/>
+                            <line x1="3" y1="12" x2="3.01" y2="12"/>
+                            <line x1="3" y1="18" x2="3.01" y2="18"/>
+                        </svg>
+                    </button>
+                    <button id="export-pdf" class="btn btn-icon" title="PDFエクスポート">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                            <line x1="16" y1="13" x2="8" y2="13"/>
+                            <line x1="16" y1="17" x2="8" y2="17"/>
+                            <polyline points="10 9 9 9 8 9"/>
+                        </svg>
+                    </button>
+                    <button id="new-file" class="btn btn-icon" title="新しいファイルを開く">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/>
+                            <polyline points="13 2 13 9 20 9"/>
+                        </svg>
+                    </button>
+                </div>
+            </header>
+
+            <!-- コンテンツ -->
+            <div class="viewer-content">
+                <!-- 目次サイドバー -->
+                <aside id="toc-sidebar" class="toc-sidebar">
+                    <div class="toc-header">
+                        <h2>目次</h2>
+                    </div>
+                    <nav id="toc" class="toc"></nav>
+                </aside>
+
+                <!-- マークダウンコンテンツ -->
+                <main id="content" class="markdown-content"></main>
+            </div>
+        </div>
+    </div>
+
+    <!-- 画像ダイアログ -->
+    <dialog id="image-dialog" class="image-dialog">
+        <button class="dialog-close" aria-label="閉じる" onclick="this.closest('dialog').close()">&times;</button>
+        <img class="dialog-image" id="dialog-image" alt="">
+    </dialog>
+
+    <!-- Mermaidダイアログ -->
+    <dialog id="mermaid-dialog" class="mermaid-dialog">
+        <button class="dialog-close" aria-label="閉じる" onclick="this.closest('dialog').close()">&times;</button>
+        <div class="dialog-mermaid-content" id="dialog-mermaid-content"></div>
+    </dialog>
+
+    <script src="script.js"></script>
+</body>
+</html>

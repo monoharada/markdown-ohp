@@ -1,0 +1,156 @@
+/* PDF印刷用スタイル */
+@media print {
+    /* ページ設定 - 1枚の長いPDFにする */
+    @page {
+        size: A4;
+        margin: 20mm 20mm 0 20mm;
+    }
+    
+    /* 最初のページ以外の上マージンを削除 */
+    @page :left {
+        margin-top: 0;
+    }
+    
+    @page :right {
+        margin-top: 0;
+    }
+    
+    /* 不要な要素を非表示 */
+    .viewer-header,
+    .toc-sidebar,
+    .dialog-close,
+    .drop-zone,
+    dialog,
+    .notification {
+        display: none !important;
+    }
+    
+    /* メインコンテンツの調整 */
+    body {
+        background: white;
+        color: black;
+    }
+    
+    .viewer {
+        height: auto !important;
+    }
+    
+    .viewer-content {
+        display: block !important;
+        overflow: visible !important;
+    }
+    
+    .markdown-content {
+        padding: 0 !important;
+        max-width: 100% !important;
+        overflow: visible !important;
+        background: white !important;
+        page-break-inside: avoid;
+    }
+    
+    /* 改ページの防止 */
+    * {
+        page-break-inside: avoid !important;
+    }
+    
+    h1, h2, h3, h4, h5, h6 {
+        page-break-after: avoid !important;
+        page-break-inside: avoid !important;
+    }
+    
+    p, blockquote, pre, ul, ol, dl, table {
+        page-break-inside: avoid !important;
+    }
+    
+    /* 見出しの折りたたみアイコンを非表示 */
+    .heading-toggle {
+        display: none !important;
+    }
+    
+    .collapsible-heading {
+        padding-left: 0 !important;
+    }
+    
+    /* 折りたたまれたコンテンツを展開 */
+    .heading-content,
+    .heading-content.collapsed {
+        display: block !important;
+        max-height: none !important;
+        overflow: visible !important;
+    }
+    
+    /* コードブロックの調整 */
+    pre {
+        white-space: pre-wrap !important;
+        word-wrap: break-word !important;
+        border: 1px solid #ddd !important;
+        background: #f6f8fa !important;
+    }
+    
+    code {
+        background: #f6f8fa !important;
+        color: black !important;
+    }
+    
+    /* テーブルの調整 */
+    table {
+        border-collapse: collapse !important;
+        width: 100% !important;
+    }
+    
+    th, td {
+        border: 1px solid #ddd !important;
+        padding: 8px !important;
+    }
+    
+    th {
+        background: #f6f8fa !important;
+    }
+    
+    /* 画像の調整 */
+    img {
+        max-width: 100% !important;
+        height: auto !important;
+        display: block !important;
+        margin: 1em auto !important;
+    }
+    
+    /* Mermaidダイアグラムの調整 */
+    .mermaid {
+        text-align: center !important;
+        margin: 1em 0 !important;
+        cursor: default !important;
+        background: transparent !important;
+        border: 1px solid #ddd !important;
+        padding: 1em !important;
+    }
+    
+    .mermaid:hover {
+        transform: none !important;
+        box-shadow: none !important;
+    }
+    
+    .mermaid svg {
+        max-width: 100% !important;
+        height: auto !important;
+    }
+    
+    /* リンクの表示 */
+    a {
+        color: black !important;
+        text-decoration: underline !important;
+    }
+    
+    /* URLを印刷時に表示 */
+    a[href]:after {
+        content: " (" attr(href) ")";
+        font-size: 0.8em;
+        color: #666;
+    }
+    
+    /* 内部リンクは除外 */
+    a[href^="#"]:after,
+    a[href^="javascript:"]:after {
+        content: "";
+    }
+}
