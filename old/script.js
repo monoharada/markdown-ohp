@@ -4,6 +4,10 @@ let tocItems = [];
 let fileHandle = null; // File System Access APIのハンドル
 let lastModified = null; // ファイルの最終更新時刻
 
+// セッション状態管理
+const SESSION_STORAGE_KEY = 'markdownViewerSession';
+const MAX_CONTENT_SIZE = 1024 * 1024; // 1MB制限（localStorage容量制限対策）
+
 // 初期化
 document.addEventListener('DOMContentLoaded', () => {
     initializeDropZone();
@@ -23,6 +27,9 @@ document.addEventListener('DOMContentLoaded', () => {
             tertiaryColor: '#f1f5f9'
         }
     });
+    
+    // セッション状態の復元を試みる
+    restoreSession();
 });
 
 // ドラッグ&ドロップの初期化
@@ -112,6 +119,7 @@ async function readFile(file) {
             document.getElementById('file-name').textContent = file.name;
             renderMarkdown(currentMarkdown);
             showViewer();
+            saveSession();
             
             // File System Access APIのボタンを表示（ホットリロード機能の案内）
             if ('showOpenFilePicker' in window) {
@@ -126,9 +134,11 @@ async function readFile(file) {
             const text = await file.text();
             currentMarkdown = text;
             lastModified = file.lastModified;
+            currentFileName = file.name;
             document.getElementById('file-name').textContent = file.name;
             renderMarkdown(currentMarkdown);
             showViewer();
+            saveSession();
         } catch (err) {
             console.error('ファイルの読み込みに失敗しました:', err);
         }
@@ -137,9 +147,11 @@ async function readFile(file) {
         const reader = new FileReader();
         reader.onload = (e) => {
             currentMarkdown = e.target.result;
+            currentFileName = file.name;
             document.getElementById('file-name').textContent = file.name;
             renderMarkdown(currentMarkdown);
             showViewer();
+            saveSession();
         };
         reader.readAsText(file);
     }
@@ -359,6 +371,7 @@ function startWatching() {
                 if (file.lastModified !== lastModified) {
                     await readFile();
                     showNotification('ファイルが更新されました');
+                    saveSession();
                 }
             } catch (err) {
                 console.error('ファイル監視エラー:', err);
@@ -714,6 +727,8 @@ function initializeButtons() {
     document.getElementById('new-file').addEventListener('click', () => {
         hideViewer();
         document.getElementById('file-input').value = '';
+        // セッションをクリア
+        localStorage.removeItem(SESSION_STORAGE_KEY);
     });
     
     // PDFエクスポート
@@ -745,6 +760,105 @@ function hideViewer() {
     if (hotReloadBtn) {
         hotReloadBtn.remove();
     }
+}
+
+// セッション状態を保存
+function saveSession() {
+    try {
+        const session = {
+            fileName: currentFileName,
+            content: currentMarkdown,
+            lastModified: lastModified,
+            timestamp: Date.now(),
+            hadHotReload: fileHandle !== null
+        };
+        
+        // コンテンツサイズが大きすぎる場合は保存しない
+        if (currentMarkdown.length > MAX_CONTENT_SIZE) {
+            console.warn('Content too large to save in localStorage');
+            return;
+        }
+        
+        localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
+    } catch (e) {
+        console.error('Failed to save session:', e);
+    }
+}
+
+// セッション状態を復元
+async function restoreSession() {
+    try {
+        const sessionData = localStorage.getItem(SESSION_STORAGE_KEY);
+        if (!sessionData) return;
+        
+        const session = JSON.parse(sessionData);
+        
+        // 24時間以上経過したセッションは無視
+        if (Date.now() - session.timestamp > 24 * 60 * 60 * 1000) {
+            localStorage.removeItem(SESSION_STORAGE_KEY);
+            return;
+        }
+        
+        // ファイル内容を復元
+        currentMarkdown = session.content;
+        currentFileName = session.fileName;
+        lastModified = session.lastModified;
+        
+        // UIを表示
+        document.getElementById('file-name').textContent = session.fileName;
+        renderMarkdown(currentMarkdown);
+        showViewer();
+        
+        // ホットリロード機能の案内を表示
+        if (session.hadHotReload && 'showOpenFilePicker' in window) {
+            showHotReloadPrompt();
+        }
+        
+        // 復元成功の通知
+        showNotification('前回のセッションを復元しました');
+        
+    } catch (e) {
+        console.error('Failed to restore session:', e);
+        localStorage.removeItem(SESSION_STORAGE_KEY);
+    }
+}
+
+// ホットリロード再有効化の案内
+function showHotReloadPrompt() {
+    const promptDiv = document.createElement('div');
+    promptDiv.className = 'hot-reload-prompt';
+    promptDiv.innerHTML = `
+        <div class="prompt-content">
+            <p>前回はホットリロードが有効でした。再度有効にしますか？</p>
+            <p class="prompt-subtitle">${currentFileName}</p>
+            <div class="prompt-actions">
+                <button class="btn-secondary" id="skip-hot-reload">スキップ</button>
+                <button class="btn-primary" id="enable-hot-reload">ホットリロードを有効化</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(promptDiv);
+    
+    // ホットリロードを有効化
+    document.getElementById('enable-hot-reload').addEventListener('click', async () => {
+        promptDiv.remove();
+        await enableHotReloadForCurrentFile();
+    });
+    
+    // スキップ
+    document.getElementById('skip-hot-reload').addEventListener('click', () => {
+        promptDiv.remove();
+        createHotReloadButton(false);
+    });
+    
+    // 5秒後に自動的に閉じる
+    setTimeout(() => {
+        if (promptDiv.parentNode) {
+            promptDiv.remove();
+            createHotReloadButton(false);
+        }
+    }, 5000);
 }
 
 // PDFエクスポート

@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown Viewer - 最強のマークダウンビューアー | ホットリロード対応</title>
+    <meta name="description" content="ドラッグ&ドロップで簡単にマークダウンファイルを閲覧。自動目次生成、折りたたみ機能、Mermaidダイアグラム対応、ホットリロード機能付きの高機能マークダウンビューアー。">
+    <meta name="keywords" content="マークダウン,ビューアー,Markdown,Viewer,ホットリロード,Mermaid,目次,折りたたみ,PDF出力">
+    <meta name="author" content="Markdown Viewer Team">
+    
+    <!-- OGP / Social Media -->
+    <meta property="og:title" content="Markdown Viewer - 最強のマークダウンビューアー">
+    <meta property="og:description" content="ドラッグ&ドロップで簡単にマークダウンファイルを閲覧。自動目次生成、折りたたみ機能、Mermaidダイアグラム対応の高機能ビューアー。">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://monoharada.github.io/markdown-ohp/">
+    <meta property="og:image" content="https://monoharada.github.io/markdown-ohp/ogp-image.png">
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Markdown Viewer - 最強のマークダウンビューアー">
+    <meta name="twitter:description" content="ドラッグ&ドロップで簡単にマークダウンファイルを閲覧。高機能で使いやすい。">
+    <meta name="twitter:image" content="https://monoharada.github.io/markdown-ohp/ogp-image.png">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='0.9em' font-size='90'%3E📝%3C/text%3E%3C/svg%3E">
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://monoharada.github.io/markdown-ohp/">
+    
+    <!-- CSS変数とグローバルスタイル -->
+    <style>
+        :root {
+            --primary-color: #3b82f6;
+            --secondary-color: #64748b;
+            --background-color: #f8fafc;
+            --surface-color: #ffffff;
+            --text-color: #1e293b;
+            --text-secondary: #64748b;
+            --border-color: #e2e8f0;
+            --hover-color: #f1f5f9;
+            --code-bg: #f6f8fa;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        
+        /* 印刷用スタイル */
+        @media print {
+            .heading-toggle {
+                display: none !important;
+            }
+            
+            .heading-content.collapsed {
+                max-height: none !important;
+            }
+        }
+    </style>
+    
+    <!-- 外部ライブラリ -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/highlight.min.js"></script>
+</head>
+<body>
+    <!-- メインアプリケーション -->
+    <markdown-viewer-app></markdown-viewer-app>
+    
+    <!-- カスタムライトボックスコンポーネント -->
+    <image-lightbox></image-lightbox>
+    
+    <!-- Web Components をデフォルトで読み込む -->
+    <script src="./web-components.js" defer></script>
+    
+    <!-- 初期化スクリプト -->
+    <script type="module">
+        // ライブラリの読み込みを待つ
+        async function initializeApp() {
+            console.log('initializeApp called');
+            
+            // marked.jsとmermaidの読み込みを確認
+            let attempts = 0;
+            while ((typeof marked === 'undefined' || typeof mermaid === 'undefined') && attempts < 50) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                attempts++;
+            }
+            
+            if (typeof marked === 'undefined' || typeof mermaid === 'undefined') {
+                console.error('Required libraries failed to load');
+                return;
+            }
+            
+            console.log('Libraries loaded successfully');
+            
+            // Mermaidの初期化
+            mermaid.initialize({
+                startOnLoad: false,
+                theme: 'default',
+                themeVariables: {
+                    primaryColor: '#3b82f6',
+                    primaryTextColor: '#fff',
+                    primaryBorderColor: '#2563eb',
+                    lineColor: '#64748b',
+                    secondaryColor: '#64748b',
+                    tertiaryColor: '#f1f5f9'
+                }
+            });
+            
+            console.log('Mermaid initialized');
+            
+            // グローバルイベントリスナー
+            document.addEventListener('image-clicked', (e) => {
+                const lightbox = document.querySelector('image-lightbox');
+                if (lightbox) {
+                    lightbox.show(e.detail.src, e.detail.alt);
+                }
+            });
+            
+            // 通知表示
+            document.addEventListener('show-notification', (e) => {
+                const { message, type } = e.detail;
+                showNotification(message, type);
+            });
+            
+            console.log('Event listeners setup completed');
+        }
+        
+        // 通知表示関数
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 12px 24px;
+                background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'};
+                color: white;
+                border-radius: 6px;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                z-index: 10000;
+                animation: slideIn 0.3s ease;
+            `;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+        
+        // アニメーション定義
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // アプリケーションを初期化
+        initializeApp();
+    </script>
+</body>
+</html>
