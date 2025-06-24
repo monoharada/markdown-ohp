@@ -15,30 +15,29 @@ This is a static website with no build tools:
 
 ## Architecture
 
-### Legacy Architecture (script.js - now deprecated)
-The original implementation was a single 900+ line script with all functionality mixed together.
+### Current Architecture (Web Components)
+The application uses native Web Components with Shadow DOM for encapsulation. All components are defined in a single file to avoid ES6 module MIME type issues.
 
-### New Modular Architecture
-The application has been refactored into ES6 modules with clear separation of concerns:
+#### Web Components (web-components.js)
+- **MarkdownViewerApp**: Main application component that manages state and routing
+- **DropZoneComponent**: File drop area with drag/drop and file picker support
+- **ViewerContainer**: Container for the markdown viewer with header controls
+- **MarkdownContent**: Renders markdown content with syntax highlighting and diagrams
+- **TocNavigation**: Table of contents sidebar with active heading tracking
+- **ImageLightbox**: Dialog-based image preview for images and Mermaid diagrams
 
-#### Core Modules (/modules/)
-- **EventBus.js**: Central event system for decoupled communication between modules
-- **FileHandler.js**: File operations, File System Access API, hot reload functionality
-- **MarkdownRenderer.js**: Markdown parsing and HTML generation using marked.js
-- **SessionManager.js**: LocalStorage-based session persistence
-- **NotificationManager.js**: User notifications and alerts
-- **DragDropHandler.js**: Drag and drop file handling
-- **TOCGenerator.js**: Table of contents generation and navigation
+#### Key Files
+- **web-components.js**: All Web Components in a single file
+- **index.html**: Minimal HTML that loads the components
+- **styles.css**: Removed - styles are now encapsulated in Shadow DOM
+- **print.css**: Removed - print styles handled by media queries
 
-#### Web Components (/components/)
-- **drop-zone.js**: Custom element for file drop area
-- **markdown-viewer.js**: Custom element for the main viewer interface
+#### VSCode Extension (vscode-markdown-viewer/)
+- **extension.js**: VSCode extension that creates WebView for markdown preview
+- **package.json**: Extension manifest and configuration
 
-#### Main Application
-- **app.js**: Application bootstrapper that coordinates all modules
-- **index.html**: Simplified HTML using Web Components
-- **styles.css**: Main application styling
-- **print.css**: Print-specific styles for PDF export
+#### Legacy Files (old/)
+Previous modular architecture preserved for reference
 
 ### External Dependencies (CDN)
 - **marked.js**: Markdown parsing and rendering
@@ -53,6 +52,10 @@ The application has been refactored into ES6 modules with clear separation of co
 5. **Lightbox**: Native HTML dialog elements for images and diagrams
 6. **PDF Export**: Browser print functionality with custom print styles
 7. **Session Persistence**: Uses localStorage to save and restore file content across page reloads (with 24-hour expiration)
+8. **Front Matter Support**: Parses YAML front matter from markdown files
+   - Supports title, author, date, tags, and custom metadata
+   - Front Matter title takes precedence for page title
+   - UI toggle button to show/hide metadata (hidden by default)
 
 ### Browser Compatibility
 - Full features: Chrome/Edge (File System Access API support)
@@ -60,3 +63,15 @@ The application has been refactored into ES6 modules with clear separation of co
 
 ### Deployment
 The app is deployed to GitHub Pages at https://monoharada.github.io/markdown-ohp/
+
+## Testing Guide
+
+### Local Testing
+1. Open `index.html` in a web browser
+2. Drag and drop `front-matter-sample.md` to test Front Matter support
+3. Click the metadata toggle button (leftmost button in header) to show/hide Front Matter
+4. Note: The page title should display the Front Matter title if present
+
+### Known Issues
+- Session restore shows "Untitled.md" instead of original filename (localStorage limitation)
+- Front Matter parsing is basic - complex YAML structures not supported

@@ -1,0 +1,79 @@
+{
+  "name": "markdown-ohp-viewer",
+  "displayName": "Markdown OHP Viewer",
+  "description": "最強のマークダウンビューアー for VSCode - ホットリロード対応",
+  "version": "0.0.1",
+  "publisher": "markdown-ohp",
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": ["Other"],
+  "icon": "icon.png",
+  "activationEvents": [],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "markdownOhp.openPreview",
+        "title": "Open with Markdown OHP Viewer",
+        "category": "Markdown OHP",
+        "icon": "$(open-preview)"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "when": "resourceExtname == .md || resourceExtname == .markdown",
+          "command": "markdownOhp.openPreview",
+          "group": "navigation"
+        }
+      ],
+      "editor/context": [
+        {
+          "when": "resourceExtname == .md || resourceExtname == .markdown",
+          "command": "markdownOhp.openPreview",
+          "group": "markdown"
+        }
+      ],
+      "explorer/context": [
+        {
+          "when": "resourceExtname == .md || resourceExtname == .markdown",
+          "command": "markdownOhp.openPreview",
+          "group": "navigation"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "markdownOhp.openPreview",
+        "key": "ctrl+shift+v",
+        "mac": "cmd+shift+v",
+        "when": "editorTextFocus && resourceExtname == .md"
+      }
+    ],
+    "configuration": {
+      "title": "Markdown OHP Viewer",
+      "properties": {
+        "markdownOhp.autoReload": {
+          "type": "boolean",
+          "default": true,
+          "description": "ファイル変更時に自動でリロードする"
+        },
+        "markdownOhp.showToc": {
+          "type": "boolean",
+          "default": true,
+          "description": "目次を表示する"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.74.0",
+    "eslint": "^8.28.0",
+    "vsce": "^2.15.0"
+  }
+}

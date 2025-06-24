@@ -185,8 +185,12 @@ class MarkdownViewerApp extends HTMLElement {
   }
   
   saveSession() {
+    // ViewerContainerから現在のファイル名を取得
+    const viewer = this.shadowRoot.querySelector('viewer-container');
+    const currentFileName = viewer?.state?.fileName || this.state.currentFile?.name;
+    
     const session = {
-      fileName: this.state.currentFile?.name,
+      fileName: currentFileName,
       content: this.state.currentContent,
       lastModified: this.state.currentFile?.lastModified,
       isHotReloadEnabled: this.state.isHotReloadEnabled,
@@ -195,6 +199,7 @@ class MarkdownViewerApp extends HTMLElement {
     
     try {
       localStorage.setItem('markdown-viewer-session', JSON.stringify(session));
+      console.log('Session saved with fileName:', session.fileName);
     } catch (error) {
       console.error('Failed to save session:', error);
     }
@@ -218,11 +223,20 @@ class MarkdownViewerApp extends HTMLElement {
         setTimeout(() => {
           const viewer = this.shadowRoot.querySelector('viewer-container');
           if (viewer) {
+            // セッションからファイル名を復元（デフォルト値を使わない）
+            const restoredFileName = session.fileName || 'Session Restored.md';
+            
             viewer.setContent({
-              fileName: session.fileName,
+              fileName: restoredFileName,
               content: session.content,
               lastModified: session.lastModified
             });
+            
+            // MarkdownViewerAppの状態も更新
+            this.state.currentFile = {
+              name: restoredFileName,
+              lastModified: session.lastModified
+            };
           }
           
           this.showNotification('前回のセッションを復元しました', 'success');
@@ -492,7 +506,9 @@ class ViewerContainer extends HTMLElement {
     this.state = {
       fileName: '',
       content: '',
-      isTocVisible: true
+      isTocVisible: true,
+      isFrontMatterVisible: false,
+      frontMatter: {}
     };
   }
   
@@ -606,6 +622,15 @@ class ViewerContainer extends HTMLElement {
       <header class="viewer-header">
         <h1 class="file-name"></h1>
         <div class="header-actions">
+          <button class="btn" id="toggle-frontmatter" title="メタデータの表示/非表示">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 11H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/>
+              <path d="M15 11h5a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-5"/>
+              <path d="M9 13H4a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h5"/>
+              <path d="M15 13h5a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-5"/>
+            </svg>
+          </button>
+          
           <button class="btn" id="toggle-toc" title="目次の表示/非表示">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="8" y1="6" x2="21" y2="6"/>
@@ -649,6 +674,10 @@ class ViewerContainer extends HTMLElement {
   }
   
   setupEventListeners() {
+    // Front Matterトグル
+    const frontMatterToggle = this.shadowRoot.getElementById('toggle-frontmatter');
+    frontMatterToggle?.addEventListener('click', () => this.toggleFrontMatter());
+    
     // 目次トグル
     const tocToggle = this.shadowRoot.getElementById('toggle-toc');
     tocToggle?.addEventListener('click', () => this.toggleToc());
@@ -689,6 +718,40 @@ class ViewerContainer extends HTMLElement {
       setTimeout(() => {
         const headings = markdownContent.getHeadings();
         tocNavigation.setHeadings(headings);
+        
+        // Front Matterからタイトルを取得
+        const frontMatter = markdownContent.getFrontMatter();
+        
+        // ページタイトルを更新（優先順位: Front Matter title > H1 > 最初の見出し > ファイル名）
+        if (frontMatter.title) {
+          document.title = `${frontMatter.title} | ${fileName}`;
+        } else {
+          const h1 = headings.find(h => h.level === 1);
+          if (h1) {
+            document.title = `${h1.text} | ${fileName}`;
+          } else {
+            // H1がない場合は最初の見出しを使用
+            const firstHeading = headings[0];
+            if (firstHeading) {
+              document.title = `${firstHeading.text} | ${fileName}`;
+            } else {
+              // 見出しがない場合はファイル名のみ
+              document.title = fileName;
+            }
+          }
+        }
+        
+        // Front Matterのメタデータを保存
+        if (Object.keys(frontMatter).length > 0) {
+          console.log('Front Matter detected:', frontMatter);
+          this.state.frontMatter = frontMatter;
+        }
+        
+        // タイトルが設定された後にセッションを保存
+        const app = document.querySelector('markdown-viewer-app');
+        if (app) {
+          app.saveSession();
+        }
       }, 100);
     }
   }
@@ -697,6 +760,16 @@ class ViewerContainer extends HTMLElement {
     const sidebar = this.shadowRoot.querySelector('.toc-sidebar');
     sidebar?.classList.toggle('hidden');
     this.state.isTocVisible = !this.state.isTocVisible;
+  }
+  
+  toggleFrontMatter() {
+    this.state.isFrontMatterVisible = !this.state.isFrontMatterVisible;
+    
+    // マークダウンコンテンツにFront Matter表示状態を伝える
+    const markdownContent = this.shadowRoot.querySelector('markdown-content');
+    if (markdownContent) {
+      markdownContent.setFrontMatterVisibility(this.state.isFrontMatterVisible, this.state.frontMatter);
+    }
   }
   
   exportToPdf() {
@@ -1076,7 +1149,52 @@ class MarkdownContent extends HTMLElement {
           color: #b31d28;
           background-color: #ffeef0;
         }
+        
+        /* Front Matter表示 */
+        .frontmatter-container {
+          background: var(--hover-color, #f1f5f9);
+          border: 1px solid var(--border-color, #e2e8f0);
+          border-radius: 8px;
+          padding: 1.5rem;
+          margin-bottom: 2rem;
+          display: none;
+        }
+        
+        .frontmatter-container.visible {
+          display: block;
+        }
+        
+        .frontmatter-title {
+          font-size: 1rem;
+          font-weight: 600;
+          color: var(--text-secondary, #64748b);
+          margin-bottom: 1rem;
+          text-transform: uppercase;
+        }
+        
+        .frontmatter-content {
+          font-family: "SF Mono", Monaco, Consolas, monospace;
+          font-size: 0.875rem;
+        }
+        
+        .frontmatter-item {
+          margin-bottom: 0.5rem;
+        }
+        
+        .frontmatter-key {
+          color: var(--primary-color, #3b82f6);
+          font-weight: 600;
+        }
+        
+        .frontmatter-value {
+          color: var(--text-color, #1e293b);
+        }
       </style>
+      
+      <div class="frontmatter-container">
+        <h3 class="frontmatter-title">メタデータ</h3>
+        <div class="frontmatter-content"></div>
+      </div>
       
       <div class="content-wrapper">
         <!-- コンテンツは動的に挿入されます -->
@@ -1122,6 +1240,15 @@ class MarkdownContent extends HTMLElement {
   }
   
   async parseMarkdown(markdown) {
+    // Front Matterを解析
+    const frontMatter = this.parseFrontMatter(markdown);
+    
+    // Front Matterを除いたマークダウンコンテンツ
+    const markdownContent = frontMatter.content;
+    
+    // Front Matterのデータを保存
+    this.frontMatter = frontMatter.data;
+    
     // カスタムレンダラーの設定
     const renderer = new marked.Renderer();
     let headingIndex = 0;
@@ -1196,7 +1323,7 @@ class MarkdownContent extends HTMLElement {
       gfm: true
     });
     
-    return marked.parse(markdown);
+    return marked.parse(markdownContent);
   }
   
   postProcess() {
@@ -1368,6 +1495,88 @@ class MarkdownContent extends HTMLElement {
   
   getHeadings() {
     return this.headings;
+  }
+  
+  getFrontMatter() {
+    return this.frontMatter || {};
+  }
+  
+  parseFrontMatter(markdown) {
+    const frontMatterRegex = /^---\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/;
+    const match = markdown.match(frontMatterRegex);
+    
+    if (!match) {
+      return { data: {}, content: markdown };
+    }
+    
+    const yamlContent = match[1];
+    const markdownContent = match[2];
+    
+    // 簡易的なYAMLパーサー（基本的なkey: value形式のみサポート）
+    const data = {};
+    const lines = yamlContent.split('\n');
+    
+    for (const line of lines) {
+      const colonIndex = line.indexOf(':');
+      if (colonIndex > 0) {
+        const key = line.substring(0, colonIndex).trim();
+        let value = line.substring(colonIndex + 1).trim();
+        
+        // クォートを除去
+        if ((value.startsWith('"') && value.endsWith('"')) || 
+            (value.startsWith("'") && value.endsWith("'"))) {
+          value = value.slice(1, -1);
+        }
+        
+        // 配列の処理（簡易版）
+        if (value.startsWith('[') && value.endsWith(']')) {
+          value = value.slice(1, -1).split(',').map(v => v.trim());
+        }
+        
+        // 真偽値の処理
+        if (value === 'true') value = true;
+        if (value === 'false') value = false;
+        
+        // 数値の処理
+        if (!isNaN(value) && value !== '') {
+          value = Number(value);
+        }
+        
+        data[key] = value;
+      }
+    }
+    
+    return { data, content: markdownContent };
+  }
+  
+  setFrontMatterVisibility(visible, frontMatterData) {
+    const container = this.shadowRoot.querySelector('.frontmatter-container');
+    const contentDiv = this.shadowRoot.querySelector('.frontmatter-content');
+    
+    if (!container || !contentDiv) return;
+    
+    if (visible && Object.keys(frontMatterData).length > 0) {
+      container.classList.add('visible');
+      
+      // Front Matterデータをフォーマットして表示
+      const html = Object.entries(frontMatterData).map(([key, value]) => {
+        let displayValue = value;
+        if (Array.isArray(value)) {
+          displayValue = value.join(', ');
+        } else if (typeof value === 'object') {
+          displayValue = JSON.stringify(value, null, 2);
+        }
+        
+        return `<div class="frontmatter-item">
+          <span class="frontmatter-key">${key}:</span>
+          <span class="frontmatter-value">${displayValue}</span>
+        </div>`;
+      }).join('');
+      
+      contentDiv.innerHTML = html;
+    } else {
+      container.classList.remove('visible');
+    }
   }
 }
 
